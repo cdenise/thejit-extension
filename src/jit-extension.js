@@ -3,7 +3,7 @@
  *==================================================
  */
 
-(function() {
+Exhibit.onjQueryLoaded(function() {
     var isCompiled = ("Exhibit_JitExtension_isCompiled" in window) && 
                     window.Exhibit_JitExtension_isCompiled;
                     
@@ -64,4 +64,34 @@
         Exhibit.includeJavascriptFiles("", scriptURLs, false);
         Exhibit.includeCssFiles(document, "", cssURLs);
     }
-})();
+
+    /**
+     * @static
+     * @public
+     * @param {jQuery.Event} evt
+     * @param {extensionRegistry: []} reg
+     */
+    Exhibit.JitExtension.registerExtension = function(evt, reg) {
+        if ($.inArray('JitExtension', reg.extensionRegistry) < 0) {
+            reg.extensionRegistry.push('JitExtension');
+        }
+    };
+
+    Exhibit.jQuery(document).on("registerExtensions.exhibit", Exhibit.JitExtension.registerExtension);
+
+    Exhibit.JitExtension._extensionSpecs = {
+        viewSpecs: {
+            "ForceDirectedView": {}
+        },
+        documentation: ' \
+        <div id="intro"> \
+            We are using the <a href="http://philogb.github.io/jit/">JavaScript Infovis Toolkit (JIT)</a> to construct this view. \
+        </div>\
+            <p>To add JIT force directed view to your exhibit, you must include JIT library and the exhibit extension for JIT(in addition to the Exhibit API): \
+            </p> \
+        <div class="border"> \
+            <pre> &lt;link rel="exhibit-extension" src=<a href="http://projects.csail.mit.edu/exhibit/api/extensions/jit/jit-extension.js">"http://projects.csail.mit.edu/exhibit/api/extensions/jit/jit-extension.js"</a>/&gt; \
+            </pre> \
+        </div>'
+    }
+});
