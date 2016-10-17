@@ -31,7 +31,6 @@ Exhibit.ForceDirectedView = function(containerElmt, uiContext) {
     this._sizeCoder = null;
     this._colorKeyCache = new Object();
     this._maxColor = 0;
-    this._edgeExpression = null;
     
     this._onItemsChanged = function(){
         view._reconstruct(); 
@@ -49,17 +48,18 @@ Exhibit.ForceDirectedView = function(containerElmt, uiContext) {
  * @constant 
  */
 Exhibit.ForceDirectedView._settingSpecs = {
-    "plotHeight" : {type : "int", defaultValue : 400},
-    "plotWidth" : {type : "int", defaultValue : 600},
-    "color" : {type : "text", defaultValue : '#D95F0E' },
-    "colorCoder" : {type : "text", defaultValue : null},
-    "shape" : {type : "text", defaultValue : "triangle"},
-    "shapeCoder" : {type : "text", defaultValue : null},
-    "size" : {type : "text", defaultValue : 6},
-    "sizeCoder" : {type : "text", defaultValue : null},
-    "edgeColor" : {type : "text", defaultValue : '#23A4FF'},
-    "bubbleWidth":  { type: "int",   defaultValue: 400 },
-    "bubbleHeight": { type: "int",   defaultValue: 300 }
+    "plotHeight" : {type : "int", defaultValue : 400, description:"height of the plot in pixels", importance: 1},
+    "plotWidth" : {type : "int", defaultValue : 600, description: "width of the plot in pixels", importance: 1},
+    "color" : {type : "text", defaultValue : '#D95F0E', description: "all nodes in graph will be of this color in the absence of color coders", importance
+    : 3},
+    "colorCoder" : {type : "text", defaultValue : null, description: "id of color coder", importance: 1},
+    "shape" : {type : "enum", choices: ["triangle", "square", "circle", "star"], defaultValue : "triangle", description: "all nodes in graph will be of this shape in the absence of a shapeCoder", importance: 3},
+    "shapeCoder" : {type : "text", defaultValue : null, description: "id of shape coder", importance: 1},
+    "size" : {type : "text", defaultValue : 6, description: "All the nodes will be of this size if there is no sizeCoder", importance: 3},
+    "sizeCoder" : {type : "text", defaultValue : null, description: "id of size coder", importance: 1},
+    "edgeColor" : {type : "text", defaultValue : '#23A4FF', description: "color for the lines that link the nodes (edges)", importance: 3},
+    "bubbleWidth":  { type: "int",   defaultValue: 400, description: "height of the pop-up in pixels", importance: 1},
+    "bubbleHeight": { type: "int",   defaultValue: 300, description: "width of the pop-up in pixels", importance: 1}
 };
 
 /**
@@ -68,19 +68,32 @@ Exhibit.ForceDirectedView._settingSpecs = {
 Exhibit.ForceDirectedView._accessorSpecs = [
     {   "accessorName":   "getNode",
         "attributeName":  "node",
-        "type":           "text"
+        "type":           "text",
+        description: "property for the name displayed on the node",
+        importance: 9,
+        required: true
+    },
+    {   "accessorName":   "getEdge",
+        "attributeName":  "edge",
+        "type":           "text",
+        description: "property for the link between two nodes",
+        importance: 9,
+        required: true
     },
     {   "accessorName":   "getColorKey",
         "attributeName":  "colorKey",
-        "type":           "text"
+        "type":           "text",
+        importance: 1
     },
     {   "accessorName":   "getShapeKey",
         "attributeName":  "shapeKey",
-        "type":           "text"
+        "type":           "text",
+        importance: 1
     },
     {   "accessorName":   "getSizeKey",
         "attributeName":  "sizeKey",
-        "type":           "text"
+        "type":           "text",
+        importance: 1
     }
 ];
 
@@ -123,9 +136,6 @@ Exhibit.ForceDirectedView.createFromDOM = function(configElmt, containerElmt, ui
     Exhibit.SettingsUtilities.createAccessorsFromDOM(configElmt, Exhibit.ForceDirectedView._accessorSpecs, view._accessors);
     Exhibit.SettingsUtilities.collectSettingsFromDOM(configElmt, view.getSettingSpecs(), view._settings);
     Exhibit.ForceDirectedView._configure(view, configuration);
-         
-    var edge = Exhibit.getAttribute(configElmt, "edge");
-    view._edgeExpression = Exhibit.ExpressionParser.parse(edge);
     
     view._internalValidate();
     view._initializeUI();
@@ -234,7 +244,6 @@ Exhibit.ForceDirectedView.prototype._reconstruct = function (){
     accessors = this._accessors;
     database = this.getUIContext().getDatabase();
     edgeToData = {};
-    edgeExpr = this._edgeExpression;
     currentSize = this.getUIContext().getCollection().countRestrictedItems();
     colorCoder = this._colorCoder;
     colorCodingFlags = {
@@ -301,16 +310,9 @@ Exhibit.ForceDirectedView.prototype._reconstruct = function (){
             }
             
             defaultColors = Exhibit.ForceDirectedView._colors;         
-                
-            edgeObj = edgeExpr.evaluate(
-                            { "value" : itemID }, 
-                            { "value" : "item" }, 
-                            "value",
-                            database
-                        );
             
             //edgeList is a list of adj edges for each item     
-            edgeObj.values.visit(function(edge){
+            accessors.getEdge(itemID, database, function(edge){
                 for (i in currentSetIds){
                     if (currentSetIds[i] == edge){
                         edgeList.push({"nodeTo" : edge, "nodeFrom": itemID }); 
